@@ -3,23 +3,49 @@ import { Select, MenuItem } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import DashboardCard from '../../../components/shared/DashboardCard';
 import Chart from 'react-apexcharts';
-import xmlJs from 'xml-js';
+import * as xmlJs from 'xml-js'; // Import xml-js
 
+const CACHE_KEY = 'monthlyRainfallData';
 
 const SalesOverview = () => {
-
-    // select
-    const [month, setMonth] = React.useState('1');
     const [monthlyRainfallData, setMonthlyRainfallData] = useState([]);
+    const [header, setHeader] = useState([]); // State for header data
+    const [province, setProvince] = useState(''); // State for selected province
+    const [provinceData, setProvinceData] = useState(null); // Filtered data
 
+    // Load initial rainfall data when the component mounts
     useEffect(() => {
         const fetchMonthlyRainfallData = async () => {
             try {
-                const response = await fetch('https://cors-anywhere.herokuapp.com/https://data.tmd.go.th/api/ThailandClimateNormal/v1/?uid=api&ukey=api12345');
+                // Check if cached data exists
+                const cachedData = localStorage.getItem(CACHE_KEY);
+                if (cachedData) {
+                    const parsedData = JSON.parse(cachedData);
+                    const lastUpdated = new Date(parsedData.lastUpdated);
+                    const currentTime = new Date();
+
+                    // Check if data is older than 1 hour
+                    if (currentTime - lastUpdated < 7200000) {
+                        setMonthlyRainfallData(parsedData.data);
+                        return;
+                    }
+                }
+
+                const response = await fetch(
+                    'https://cors-anywhere.herokuapp.com/https://data.tmd.go.th/api/ThailandMonthlyRainfall/v1/index.php?uid=api&ukey=api12345'
+                );
                 const xmlData = await response.text();
+
+                // Convert XML to JSON using xml-js
                 const jsonData = xmlJs.xml2json(xmlData, { compact: true, spaces: 4 });
                 const parsedData = JSON.parse(jsonData);
+                // console.log(parsedData);
+
+                setHeader(parsedData.ThailandMonthlyRainfall.header);
                 setMonthlyRainfallData(parsedData.ThailandMonthlyRainfall.StationMonthlyRainfall);
+
+                // Cache the data for future use
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ data: parsedData.ThailandMonthlyRainfall.StationMonthlyRainfall, lastUpdated: new Date() }));
             } catch (error) {
                 console.error('Error fetching monthly rainfall data:', error);
             }
@@ -27,10 +53,31 @@ const SalesOverview = () => {
 
         fetchMonthlyRainfallData();
     }, []);
-    console.log(monthlyRainfallData);
 
-    const handleChange = (event) => {
-        setMonth(event.target.value);
+    // Filter data when province changes
+    useEffect(() => {
+        if (province) {
+            // console.log("Selected Province:", province);
+            // console.log("Monthly Rainfall Data:", monthlyRainfallData);
+            const filtered = monthlyRainfallData.filter(
+                (item) => item.StationNameEnglish._text === province
+            );
+            console.log("Filtered Data:", filtered);
+            setProvinceData(filtered);
+        } else {
+            setProvinceData(null); // Reset if no province is selected
+        }
+    }, [province, monthlyRainfallData]);
+
+    const handleChangeProvince = (event) => {
+        const selectedStation = event.target.value;
+        setProvince(selectedStation);
+
+        // Filter data for the selected station
+        const filteredData = monthlyRainfallData.filter(
+            (item) => item.StationNameEnglish._text === selectedStation
+        );
+        setProvinceData(filteredData);
     };
 
     // chart color
@@ -66,7 +113,7 @@ const SalesOverview = () => {
             width: 5,
             lineCap: "butt",
             colors: ["transparent"],
-          },
+        },
         dataLabels: {
             enabled: false,
         },
@@ -86,7 +133,8 @@ const SalesOverview = () => {
             tickAmount: 4,
         },
         xaxis: {
-            categories: ['16/08', '17/08', '18/08', '19/08', '20/08', '21/08', '22/08', '23/08'],
+            // Dynamically generate categories from the data
+            categories: ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
             axisBorder: {
                 show: false,
             },
@@ -96,39 +144,61 @@ const SalesOverview = () => {
             fillSeriesColor: false,
         },
     };
-    const seriescolumnchart = [
-        {
-            name: 'Eanings this month',
-            data: [355, 390, 300, 350, 390, 180, 355, 390],
-        },
-        {
-            name: 'Expense this month',
-            data: [280, 250, 325, 215, 250, 310, 280, 250],
-        },
-    ];
+    console.log(provinceData);
+    const rainfallData = provinceData ? provinceData.map((station) => ({
+        name: station.StationNameEnglish._text, // Use station name as the series name
+        data: [
+            parseFloat(station.MonthlyRainfall.RainfallJAN._text),
+            parseFloat(station.MonthlyRainfall.RainfallFEB._text),
+            parseFloat(station.MonthlyRainfall.RainfallMAR._text),
+            parseFloat(station.MonthlyRainfall.RainfallAPR._text),
+            parseFloat(station.MonthlyRainfall.RainfallMAY._text),
+            parseFloat(station.MonthlyRainfall.RainfallJUN._text),
+            parseFloat(station.MonthlyRainfall.RainfallJUL._text),
+            parseFloat(station.MonthlyRainfall.RainfallAUG._text),
+            parseFloat(station.MonthlyRainfall.RainfallSEP._text),
+            parseFloat(station.MonthlyRainfall.RainfallOCT._text),
+            parseFloat(station.MonthlyRainfall.RainfallNOV._text),
+            parseFloat(station.MonthlyRainfall.RainfallDEC._text),
+        ],
+    })) : [];
+    const seriescolumnchart = rainfallData;
+
 
     return (
-
-        <DashboardCard title="Sales Overview" action={
-            <Select
-                labelId="month-dd"
-                id="month-dd"
-                value={month}
-                size="small"
-                onChange={handleChange}
-            >
-                <MenuItem value={1}>March 2023</MenuItem>
-                <MenuItem value={2}>April 2023</MenuItem>
-                <MenuItem value={3}>May 2023</MenuItem>
-            </Select>
-        }>
-            <Chart
-                options={optionscolumnchart}
-                series={seriescolumnchart}
-                type="bar"
-                height="370px"
-            />
-        </DashboardCard>
+        <> {/* Wrapper element for the select and chart */}
+            <DashboardCard title="ThailandMonthlyRainfall" action={
+                <Select
+                    labelId="province-select"
+                    id="province-select"
+                    value={province}
+                    size="small"
+                    onChange={handleChangeProvince}
+                >
+                    {/* Populate with unique provinces from the data */}
+                    {Array.from(new Set(monthlyRainfallData.map(item => item.StationNameEnglish._text)))
+                        .map((StationNameEnglish) => (
+                            <MenuItem value={StationNameEnglish} key={StationNameEnglish}>
+                                {StationNameEnglish}
+                            </MenuItem>
+                        ))}
+                </Select>
+            }>
+                {header && (
+                    <div>
+                        Last Build Date : {header.lastBuildDate ? header.lastBuildDate._text : '2024...'}
+                    </div>
+                )}
+                {provinceData && (
+                    <Chart
+                        options={optionscolumnchart}
+                        series={seriescolumnchart}
+                        type="bar"
+                        height="370px"
+                    />
+                )}
+            </DashboardCard>
+        </>
     );
 };
 
