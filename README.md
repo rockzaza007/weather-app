@@ -26,7 +26,7 @@ This project is a web application built with React.js, using the TMD Data and AP
 1. Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/your-username/weather-data-collection-app.git
+git clone https://github.com/rockzaza007/weather-app.git
 ```
 
 2. Navigate to the project directory:
