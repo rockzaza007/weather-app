@@ -16,6 +16,7 @@ const Shadow = Loadable(lazy(() => import('../views/utilities/Shadow')));
 const Error = Loadable(lazy(() => import('../views/authentication/Error')));
 const Register = Loadable(lazy(() => import('../views/authentication/Register')));
 const Login = Loadable(lazy(() => import('../views/authentication/Login')));
+const AdminPage = Loadable(lazy(() => import('../views/sample-page/admin')));
 //const apiUser = Loadable(lazy(() => import('../api/apiUser')));
 
 const Router = [
@@ -29,7 +30,7 @@ const Router = [
       { path: '/icons', exact: true, element: <Icons /> },
       { path: '/ui/typography', exact: true, element: <TypographyPage /> },
       { path: '/ui/shadow', exact: true, element: <Shadow /> },
-      { path: '/api/users', exact: true, element: <apiUser /> },
+      { path: '/admin', exact: true, element: <AdminPage />},
       { path: '*', element: <Navigate to="/auth/404" /> },
     ],
   },

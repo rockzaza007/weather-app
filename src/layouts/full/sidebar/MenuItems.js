@@ -31,12 +31,12 @@ const Menuitems = [
     icon: IconTypography,
     href: '/sample-page',
   },
-  // {
-  //   id: uniqueId(),
-  //   title: 'Shadow',
-  //   icon: IconCopy,
-  //   href: '/ui/shadow',
-  // },
+  {
+    id: uniqueId(),
+    title: 'User Role',
+    icon: IconCopy,
+    href: '/admin',
+  },
   // {
   //   navlabel: true,
   //   subheader: 'Auth',
